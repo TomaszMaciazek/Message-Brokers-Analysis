@@ -1,0 +1,28 @@
+version: '3'
+services:
+  producer:
+    container_name: producer
+    build: 
+      context: "../../../src/rabbitmq/Producer/Producer.RabbitMQ"
+      dockerfile: Dockerfile
+    ports:
+      - "8080:5000"
+    environment:
+      - ASPNETCORE_HTTP_PORT=https://+:5001
+      - ASPNETCORE_URLS=http://+:5000
+    networks:
+      - rabbit
+  
+  consumer:
+    container_name: consumer
+    build: 
+      context: "../../../src/rabbitmq/Consumer/Consumer.RabbitMQ"
+      dockerfile: Dockerfile
+    networks:
+      - rabbit
+      
+networks:
+  rabbit:
+    name: rabbit
+    external: true
+    

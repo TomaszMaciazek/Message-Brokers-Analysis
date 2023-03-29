@@ -1,0 +1,16 @@
+version: '3'
+services:
+  producer:
+    container_name: producer_2_1_1
+    build: 
+      context: "../../../../src/rabbitmq/producer/Producer.RabbitMQ"
+      dockerfile: Dockerfile
+    networks:
+      - rabbit
+    command: "2 1000"
+      
+networks:
+  rabbit:
+    name: rabbit
+    external: true
+    
