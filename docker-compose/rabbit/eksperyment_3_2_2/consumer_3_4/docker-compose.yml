@@ -1,0 +1,43 @@
+version: '3'
+services:
+  consumer1:
+    container_name: consumer_3_4_1
+    build: 
+      context: "../../../../src/rabbitmq/Consumer/Consumer.RabbitMQ"
+      dockerfile: Dockerfile
+    networks:
+      - rabbit
+    command: "3"
+  
+  consumer2:
+    container_name: consumer_3_4_2
+    build: 
+      context: "../../../../src/rabbitmq/Consumer/Consumer.RabbitMQ"
+      dockerfile: Dockerfile
+    networks:
+      - rabbit
+    command: "3"
+
+  consumer3:
+    container_name: consumer_3_4_3
+    build: 
+      context: "../../../../src/rabbitmq/Consumer/Consumer.RabbitMQ"
+      dockerfile: Dockerfile
+    networks:
+      - rabbit
+    command: "3"
+
+  consumer4:
+    container_name: consumer_3_4_4
+    build: 
+      context: "../../../../src/rabbitmq/Consumer/Consumer.RabbitMQ"
+      dockerfile: Dockerfile
+    networks:
+      - rabbit
+    command: "3"
+
+networks:
+  rabbit:
+    name: rabbit
+    external: true
+    

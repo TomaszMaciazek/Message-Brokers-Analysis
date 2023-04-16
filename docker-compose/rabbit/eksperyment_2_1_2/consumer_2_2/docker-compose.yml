@@ -1,16 +1,7 @@
 version: '3'
 services:
-  consumer1:
+  consumer:
     container_name: consumer_2_2_1
-    build: 
-      context: "../../../../src/rabbitmq/Consumer/Consumer.RabbitMQ"
-      dockerfile: Dockerfile
-    networks:
-      - rabbit
-    command: "2"
-
-  consumer2:
-    container_name: consumer_2_2_2
     build: 
       context: "../../../../src/rabbitmq/Consumer/Consumer.RabbitMQ"
       dockerfile: Dockerfile

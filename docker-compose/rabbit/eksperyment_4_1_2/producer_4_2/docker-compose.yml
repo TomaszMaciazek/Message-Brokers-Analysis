@@ -1,0 +1,25 @@
+version: '3'
+services:
+  producer1:
+    container_name: producer_4_2_1
+    build: 
+      context: "../../../../src/rabbitmq/Producer/Producer.RabbitMQ"
+      dockerfile: Dockerfile
+    networks:
+      - rabbit
+    command: "4 5000 true" #5000 messages and producer sends message throught the fanout exchange
+  
+  producer2:
+    container_name: producer_4_2_2
+    build: 
+      context: "../../../../src/rabbitmq/Producer/Producer.RabbitMQ"
+      dockerfile: Dockerfile
+    networks:
+      - rabbit
+    command: "4 5000 false" #5000 messages and producer does not send message throught the fanout exchange
+      
+networks:
+  rabbit:
+    name: rabbit
+    external: true
+    

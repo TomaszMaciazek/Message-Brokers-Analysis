@@ -3,48 +3,34 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var commandArgs = Environment.GetCommandLineArgs();
-var builder = Host.CreateDefaultBuilder()
-    .UseConsoleLifetime();
 if (commandArgs != null && commandArgs.Length > 1)
 {
+    var builder = Host.CreateDefaultBuilder()
+    .UseConsoleLifetime();
     if (commandArgs[1] == "1")
     {
         builder = builder.ConfigureServices((context, services) => services.AddHostedService<SingleMessageTestService>());
     }
     else if (commandArgs[1] == "2")
     {
-        if(int.TryParse(commandArgs[2], out int numberOfProducers))
-        {
-            Console.WriteLine($"{numberOfProducers} producers");
-            builder = builder.ConfigureServices((context, services) => services.AddHostedService(sp => new TransferPacketTestService(numberOfProducers)));
-        }
-        else
-        {
-            Console.WriteLine("number of producers was not provided");
-        }
+        builder = builder.ConfigureServices((context, services) => services.AddHostedService<TransferMessagesTimeTestService>());
     }
-
     else if (commandArgs[1] == "3")
     {
-        if (int.TryParse(commandArgs[2], out int numberOfProducers))
-        {
-            Console.WriteLine($"{numberOfProducers} producers");
-            builder = builder.ConfigureServices((context, services) => services.AddHostedService(sp => new LatencyTestService(numberOfProducers)));
-        }
-        else
-        {
-            Console.WriteLine("number of producers was not provided");
-        }
+        builder = builder.ConfigureServices((context, services) => services.AddHostedService<TransferPacketTestService>());
     }
-
     else if (commandArgs[1] == "4")
     {
-        builder = builder.ConfigureServices((context, services) => services.AddHostedService(sp => new BreakdownTestService()));
+        builder = builder.ConfigureServices((context, services) => services.AddHostedService<LatencyTestService>());
     }
+
+    else if (commandArgs[1] == "5")
+    {
+        builder = builder.ConfigureServices((context, services) => services.AddHostedService<BreakdownTestService>());
+    }
+    builder.Build().Run();
 }
 else
 {
-    builder = builder.ConfigureServices((context, services) => services.AddHostedService<SingleMessageTestService>());
+    Console.WriteLine("No arguments have been provided");
 }
-
-builder.Build().Run();

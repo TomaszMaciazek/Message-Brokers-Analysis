@@ -5,16 +5,15 @@ using System.Diagnostics;
 
 namespace Consumer.RabbitMQ.Service
 {
-    public class SingleMessageTestService : IHostedService
+    public class TransferMessagesTimeTestService : IHostedService
     {
         private IConnection? conn;
         private IModel? channel;
         private readonly List<int> records = new List<int>();
-        private readonly Stopwatch stopwatch = new Stopwatch();
-        private string consumerTag = string.Empty;
-        private const string exchangeName = "transfer-single-exchange";
-        private const string fanoutExchangeName = "transfer-single-result-exchange";
-        private const string queueName = "transfer-single-queue";
+        private readonly Stopwatch stopwatch = new ();
+        private const string topicExchangeName = "transfer-time-exchange";
+        private const string fanoutExchangeName = "transfer-time-result";
+        private const string queueName = "transfer-time-queue";
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -31,11 +30,12 @@ namespace Consumer.RabbitMQ.Service
             channel.BasicQos(0, 1, false);
             channel.QueueDeclare(queueName, false, false, true, null);
             var fanoutQueue = channel.QueueDeclare().QueueName;
-            channel.ExchangeDeclare(exchangeName, ExchangeType.Topic, autoDelete: true);
+            channel.ExchangeDeclare(topicExchangeName, ExchangeType.Topic, autoDelete: true);
             channel.ExchangeDeclare(fanoutExchangeName, ExchangeType.Fanout, autoDelete: true);
-            channel.QueueBind(queueName, exchangeName, "transfer-single.key");
+            channel.QueueBind(queueName, topicExchangeName, "transfer-time.key");
             channel.QueueBind(fanoutQueue, fanoutExchangeName, "");
             Console.WriteLine("Connected to rabbitmq");
+
             var consumer = new EventingBasicConsumer(channel);
             var cancelConsumer = new EventingBasicConsumer(channel);
             consumer.Received += (model, ea) =>
@@ -54,13 +54,12 @@ namespace Consumer.RabbitMQ.Service
                 records.Clear();
             };
             channel.BasicConsume(queue: fanoutQueue, autoAck: true, consumer: cancelConsumer);
-            consumerTag = channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
+            channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            stopwatch.Stop();
             channel?.Close();
             conn?.Close();
             return Task.CompletedTask;

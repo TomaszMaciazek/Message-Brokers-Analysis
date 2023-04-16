@@ -9,25 +9,16 @@ namespace Consumer.RabbitMQ.Service
         private IConnection? conn;
         private IModel? channel;
         private string consumerTag = string.Empty;
-        private string fanoutConsumerTag = string.Empty;
-        private const string queueName = "transfer-queue";
-        private const string exchangeName = "transfer-exchange";
-        private const string fanoutExchangeName = "transfer-packet-result-exchange";
-        private readonly int numberOfProducers = 1;
-        private readonly string fanoutQueue;
 
-        public TransferPacketTestService(int numberOfProducers)
-        {
-            this.numberOfProducers = numberOfProducers;
-            fanoutQueue = Guid.NewGuid().ToString();
-        }
+        private const string topicExchangeName = "transfer-packet-exchange";
+        private const string queueName = "transfer-packet-queue";
+        private const string fanoutExchangeName = "transfer-packet-result-exchange";
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            int counter = 0;
+            int receivedMessagesCounter = 0;
             Console.WriteLine("Transfer consumer starting");
             Console.WriteLine("Connecting to rabbitmq");
-            int remainingProducers = numberOfProducers;
             var factory = new ConnectionFactory
             {
                 Uri = new Uri("amqp://guest:guest@rabbitmq:5672")
@@ -38,42 +29,34 @@ namespace Consumer.RabbitMQ.Service
             channel.ContinuationTimeout = TimeSpan.FromSeconds(10000);
             channel.BasicQos(0, 1, false);
             channel.QueueDeclare(queueName, false, false, true, null);
-            channel.ExchangeDeclare(exchangeName, ExchangeType.Topic, autoDelete: true);
+            var fanoutQueue = channel.QueueDeclare().QueueName;
+            channel.ExchangeDeclare(topicExchangeName, ExchangeType.Topic, autoDelete: true);
             channel.ExchangeDeclare(fanoutExchangeName, ExchangeType.Fanout, autoDelete: true);
-            channel.QueueBind(queueName, exchangeName, "transfer.key");
-            //create fanout exchange queue with random name
+            channel.QueueBind(queueName, topicExchangeName, "transfer-packet.key");
             channel.QueueBind(fanoutQueue, fanoutExchangeName, "");
 
-
             var consumer = new EventingBasicConsumer(channel);
-            var fanoutConsumer = new EventingBasicConsumer(channel);
+            var cancelConsumer = new EventingBasicConsumer(channel);
             consumer.Received += (model, ea) =>
             {
-                counter++;
+                //increment received messages counter
+                receivedMessagesCounter++;
             };
-            fanoutConsumer.Received += (model, ea) =>
+
+            cancelConsumer.Received += (model, ea) =>
             {
-                remainingProducers--;
-                //if all producers finished their job
-                if (remainingProducers <= 0)
-                {
-                    var date = DateTime.Now;
-                    Console.WriteLine($"Number of received messages: {counter}");
-                    Console.WriteLine(date.ToString("yyyy-MM-dd HH:mm:ss.ffffff"));
-                    Console.WriteLine(date.Ticks);
-                    counter = 0;
-                    remainingProducers = numberOfProducers;
-                }
+                Console.WriteLine("Received cancel message");
+                Console.WriteLine($"Number of consumed messages: {receivedMessagesCounter}");
+                receivedMessagesCounter = 0;
             };
+            channel.BasicConsume(queue: fanoutQueue, autoAck: true, consumer: cancelConsumer);
             consumerTag = channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
-            fanoutConsumerTag = channel.BasicConsume(queue: fanoutQueue, autoAck: true, consumer: fanoutConsumer);
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
             channel?.BasicCancel(consumerTag);
-            channel?.BasicCancel(fanoutConsumerTag);
             channel?.Close();
             conn?.Close();
             return Task.CompletedTask;

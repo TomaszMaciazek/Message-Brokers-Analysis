@@ -1,0 +1,16 @@
+version: '3'
+services:
+  producer:
+    container_name: producer_1_1_1
+    build: 
+      context: "../../../../src/rabbitmq/Producer/Producer.RabbitMQ"
+      dockerfile: Dockerfile
+    networks:
+      - rabbit
+    command: "1 10000 true" #10000 messages and producer sends message throught the fanout exchange
+      
+networks:
+  rabbit:
+    name: rabbit
+    external: true
+    

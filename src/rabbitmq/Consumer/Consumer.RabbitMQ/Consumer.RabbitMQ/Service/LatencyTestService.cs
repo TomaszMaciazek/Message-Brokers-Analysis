@@ -10,24 +10,15 @@ namespace Consumer.RabbitMQ.Service
         private IModel? channel;
         private string consumerTag = string.Empty;
         private string fanoutConsumerTag = string.Empty;
-        private const string queueName = "latency-queue";
-        private const string exchangeName = "latency-exchange";
+        private const string topicExchangeName = "latency-exchange";
         private const string fanoutExchangeName = "latency-result-exchange";
-        private readonly int numberOfProducers = 1;
-        private readonly string fanoutQueue = string.Empty;
-
-        public LatencyTestService(int numberOfProducers)
-        {
-            this.numberOfProducers = numberOfProducers;
-            fanoutQueue = Guid.NewGuid().ToString();
-        }
+        private const string queueName = "latency-queue";
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
             var ticksList = new List<long>();
             Console.WriteLine("Latency consumer starting");
             Console.WriteLine("Connecting to rabbitmq");
-            int remainingProducers = numberOfProducers;
             var factory = new ConnectionFactory
             {
                 Uri = new Uri("amqp://guest:guest@rabbitmq:5672")
@@ -38,36 +29,32 @@ namespace Consumer.RabbitMQ.Service
             channel.ContinuationTimeout = TimeSpan.FromSeconds(10000);
             channel.BasicQos(0, 1, false);
             channel.QueueDeclare(queueName, false, false, true, null);
-            channel.ExchangeDeclare(exchangeName, ExchangeType.Topic, autoDelete: true);
-            channel.ExchangeDeclare(fanoutExchangeName, ExchangeType.Fanout, autoDelete: true);
-            channel.QueueBind(queueName, exchangeName, "latency.key");
-            //create fanout exchange queue with random name
-            channel.QueueBind(fanoutQueue, fanoutExchangeName, "");
 
+            //create queue for fanout exchange
+            var fanoutQueue = channel.QueueDeclare().QueueName;
+
+            channel.ExchangeDeclare(topicExchangeName, ExchangeType.Topic, autoDelete: true);
+            channel.ExchangeDeclare(fanoutExchangeName, ExchangeType.Fanout, autoDelete: true);
+            channel.QueueBind(queueName, topicExchangeName, "latency.key");
+            channel.QueueBind(fanoutQueue, fanoutExchangeName, "");
 
             var consumer = new EventingBasicConsumer(channel);
             var fanoutConsumer = new EventingBasicConsumer(channel);
             consumer.Received += (model, ea) =>
             {
+                //get ticks difference for receiving and produce times
                 var ticks = DateTime.Now.Ticks - (long)ea.BasicProperties.Headers["produce-time"];
                 ticksList.Add(ticks);
             };
             fanoutConsumer.Received += (model, ea) =>
             {
-                remainingProducers--;
-                //if all producers finished their job
-                if (remainingProducers <= 0)
+                if (ticksList.Any())
                 {
-                    //wait for empty queue
-                    while(channel.MessageCount(queueName) > 0) { }
-                    if (ticksList.Any())
-                    {
-                        var elapsedSpan = new TimeSpan((long)ticksList.Average());
-                        Console.WriteLine($"Average latency: {(int)elapsedSpan.TotalMilliseconds} ms");
-                    }
+                    var elapsedSpan = new TimeSpan((long)ticksList.Average());
+                    Console.WriteLine($"Average latency: {(int)elapsedSpan.TotalMilliseconds} ms");
                     ticksList.Clear();
-                    remainingProducers = numberOfProducers;
                 }
+                ticksList.Clear();
             };
             consumerTag = channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
             fanoutConsumerTag = channel.BasicConsume(queue: fanoutQueue, autoAck: true, consumer: fanoutConsumer);

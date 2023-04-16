@@ -1,38 +1,76 @@
-﻿using Producer.RabbitMQ;
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Producer.RabbitMQ.Service;
 
 var commandArgs = Environment.GetCommandLineArgs();
-
 if (commandArgs != null && commandArgs.Length > 1)
 {
-    if (commandArgs[1] == "1")
+    var builder = Host.CreateDefaultBuilder()
+    .UseConsoleLifetime();
+    if (commandArgs[1] == "1" && commandArgs.Length >= 4)
     {
-
-    }
-    else if (commandArgs[1] == "2")
-    {
-        var parsedBytesSize = int.TryParse(commandArgs[2], out var value);
-        var parsedSize = int.TryParse(commandArgs[3], out var size);
-        if (parsedBytesSize && parsedSize)
+        if (int.TryParse(commandArgs[2], out int numberOfMessages) && bool.TryParse(commandArgs[3], out bool isSendingFanoutMessage))
         {
-            TransferPacketTestService.RunPacketTransfer(BytesGenerator.GetByteArray(value), size);
+            builder.ConfigureServices((context, services) => 
+                services.AddHostedService(sp => new TransferMessagesSingleTestService(numberOfMessages, isSendingFanoutMessage))
+            ).Build().Run();
         }
     }
-    else if (commandArgs[1] == "3")
+    else if (commandArgs[1] == "2" && commandArgs.Length >= 4)
     {
-        var parsedBytesSize = int.TryParse(commandArgs[2], out var value);
-        var parsedNumberOfMessages = int.TryParse(commandArgs[3], out var numberOfMessages);
-        if (parsedBytesSize && parsedNumberOfMessages)
+        if (int.TryParse(commandArgs[2], out int timeInMiliseconds) && bool.TryParse(commandArgs[3], out bool isSendingFanoutMessage))
         {
-            LatencyConstantSizeTestService.Run(BytesGenerator.GetByteArray(value), numberOfMessages);
+            builder.ConfigureServices((context, services) =>
+                services.AddHostedService(sp => new TransferMessagesTimeTestService(timeInMiliseconds, isSendingFanoutMessage))
+            ).Build().Run();
+        }
+    }
+    else if (commandArgs[1] == "3" && commandArgs.Length >= 4)
+    {
+        if (long.TryParse(commandArgs[2], out long size) && bool.TryParse(commandArgs[3], out bool isSendingFanoutMessage ))
+        {
+            builder.ConfigureServices((context, services) => 
+                services.AddHostedService(sp => new TransferPacketTestService(size, isSendingFanoutMessage))
+            ).Build().Run();
+        }
+        else
+        {
+            Console.WriteLine("Provided paramters are not correct");
         }
     }
     else if (commandArgs[1] == "4")
     {
-        var parsedNumberOfMessages = int.TryParse(commandArgs[2], out var numberOfMessages);
-        if (parsedNumberOfMessages)
+        if (int.TryParse(commandArgs[2], out int numberOfMessages) && bool.TryParse(commandArgs[3], out bool isSendingFanoutMessage))
         {
-            BreakdownTestService.Run(numberOfMessages);
+            builder.ConfigureServices((context, services) => 
+                services.AddHostedService(sp => new LatencyConstantSizeTestService(numberOfMessages, isSendingFanoutMessage))
+            ).Build().Run();
+        }
+        else
+        {
+            Console.WriteLine("Provided paramters are not correct");
         }
     }
+
+    else if (commandArgs[1] == "5")
+    {
+        if (int.TryParse(commandArgs[2], out int numberOfMessages))
+        {
+            builder.ConfigureServices((context, services) => 
+                services.AddHostedService(sp => new BreakdownTestService(numberOfMessages))
+            ).Build().Run();
+        }
+        else
+        {
+            Console.WriteLine("Number of messages was not provided");
+        }
+    }
+    else
+    {
+        Console.WriteLine("Provided paramters are not correct");
+    }
+}
+else
+{
+    Console.WriteLine("No arguments have been provided");
 }

@@ -3,7 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33110.190
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Producer.RabbitMQ", "Producer.RabbitMQ\Producer.RabbitMQ.csproj", "{CBE9AF39-FBA9-45B8-9796-D4DCA6E91FA8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Producer.RabbitMQ", "Producer.RabbitMQ\Producer.RabbitMQ.csproj", "{CBE9AF39-FBA9-45B8-9796-D4DCA6E91FA8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2BEA6772-18F7-4208-8658-685BEF469957}"
+	ProjectSection(SolutionItems) = preProject
+		Dockerfile = Dockerfile
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

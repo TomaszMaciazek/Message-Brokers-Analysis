@@ -26,9 +26,9 @@ namespace Consumer.RabbitMQ.Service
             channel = conn.CreateModel();
             channel.ContinuationTimeout = TimeSpan.FromSeconds(10000);
             channel.BasicQos(0, 1, false);
-            channel.QueueDeclare(queueName, false, false, true, null);
-            channel.ExchangeDeclare(exchangeName, ExchangeType.Topic, durable: true, autoDelete: true);
-            channel.QueueBind(queueName, exchangeName, "breakdown.key");
+            channel.ExchangeDeclare(exchangeName, ExchangeType.Fanout, durable: true, autoDelete: false);
+            channel.QueueDeclare(queueName, true, false, false, null);
+            channel.QueueBind(queueName, exchangeName, "", null);
 
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received += (model, ea) =>
