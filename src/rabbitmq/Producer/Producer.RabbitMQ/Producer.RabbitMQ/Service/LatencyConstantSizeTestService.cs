@@ -1,5 +1,9 @@
 ﻿using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
+using Producer.RabbitMQ.Common;
 using RabbitMQ.Client;
+using System.Text;
+using System.Text.Json.Nodes;
 
 namespace Producer.RabbitMQ.Service
 {
@@ -9,7 +13,7 @@ namespace Producer.RabbitMQ.Service
         private const string fanoutExchangeName = "latency-result-exchange";
         private const string queueName = "latency-queue";
 
-        private readonly int _numberOfMessages;
+        private readonly int _size;
         private readonly bool _isSendingFanoutMessage;
         private readonly List<int> _byteSizes = new()
         {
@@ -19,9 +23,9 @@ namespace Producer.RabbitMQ.Service
         private readonly IConnection conn;
         private readonly IModel channel;
 
-        public LatencyConstantSizeTestService(int numberOfMessages, bool isSendingFanoutMessage)
+        public LatencyConstantSizeTestService(int size, bool isSendingFanoutMessage)
         {
-            _numberOfMessages = numberOfMessages;
+            _size = size;
             _isSendingFanoutMessage = isSendingFanoutMessage;
             Console.WriteLine("Latency producer starting");
             Console.WriteLine("Connecting to rabbitmq");
@@ -42,11 +46,14 @@ namespace Producer.RabbitMQ.Service
 
         public void RunTest(byte[] data)
         {
-            for (int i = 0; i < _numberOfMessages; i++)
+            var lastIndex = (int)Math.Ceiling(Convert.ToDecimal(_size) / data.Length);
+            for (int i = 0; i < lastIndex; i++)
             {
-                var prop = channel.CreateBasicProperties();
-                prop.Headers.Add("produce-time", DateTime.Now.Ticks);
-                channel.BasicPublish(exchange: topicExchangeName, routingKey: "latency.key", body: data);
+                channel.BasicPublish(
+                    exchange: topicExchangeName, 
+                    routingKey: "latency.key", 
+                    body: Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new LatencyTestMessage(DateTime.Now.Ticks, data)))
+                    );
             }
 
             var publishEnd = DateTime.Now;
@@ -56,7 +63,7 @@ namespace Producer.RabbitMQ.Service
             Console.WriteLine($"Finished consuming at {consumeEnd:yyyy-MM-dd HH:mm:ss.fffffff}");
             if (_isSendingFanoutMessage)
             {
-                channel.BasicPublish(exchange: fanoutExchangeName, routingKey: "", body: null);
+                channel.BasicPublish(exchange: fanoutExchangeName, routingKey: "", body: Encoding.UTF8.GetBytes($"Result for {data.Length} bytes"));
             }
         }
 

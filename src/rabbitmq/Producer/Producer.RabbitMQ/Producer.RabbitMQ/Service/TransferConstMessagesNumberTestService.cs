@@ -1,15 +1,13 @@
 ﻿using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
+using Producer.RabbitMQ.Common;
 using RabbitMQ.Client;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Producer.RabbitMQ.Service
 {
-    public class TransferMessagesSingleTestService : IHostedService
+    public class TransferConstMessagesNumberTestService : IHostedService
     {
         private const string topicExchangeName = "transfer-single-exchange";
         private const string fanoutExchangeName = "transfer-single-result-exchange";
@@ -26,7 +24,7 @@ namespace Producer.RabbitMQ.Service
         private readonly IConnection conn;
         private readonly IModel channel;
 
-        public TransferMessagesSingleTestService(int numberOfMessages, bool isSendingFanoutMessage)
+        public TransferConstMessagesNumberTestService(int numberOfMessages, bool isSendingFanoutMessage)
         {
             _numberOfMessages = numberOfMessages;
             _isSendingFanoutMessage= isSendingFanoutMessage;
@@ -41,7 +39,7 @@ namespace Producer.RabbitMQ.Service
             conn = factory.CreateConnection();
             channel = conn.CreateModel();
             channel.ContinuationTimeout = TimeSpan.FromSeconds(10000);
-            channel.ExchangeDeclare(topicExchangeName, ExchangeType.Topic, autoDelete: true);
+            channel.ExchangeDeclare(topicExchangeName, ExchangeType.Topic, true, autoDelete: true);
             if (_isSendingFanoutMessage)
             {
                 channel.ExchangeDeclare(fanoutExchangeName, ExchangeType.Fanout, autoDelete: true);
@@ -67,7 +65,8 @@ namespace Producer.RabbitMQ.Service
             var consumeEnd = DateTime.Now;
             if (_isSendingFanoutMessage)
             {
-                channel.BasicPublish(fanoutExchangeName, routingKey: "", body: null);
+                var body = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new TestResultMessage { ProducerStartTicks = start.Ticks, ProducerFinishedTicks = end.Ticks }));
+                channel.BasicPublish(fanoutExchangeName, routingKey: "", body: body);
             }
             Console.WriteLine($"Finished consuming at {consumeEnd:yyyy-MM-dd HH:mm:ss.fffffff}");
             Console.WriteLine($"Test time in miliseconds : {(int)(consumeEnd - start).TotalMilliseconds}");
@@ -78,7 +77,6 @@ namespace Producer.RabbitMQ.Service
             }
             Console.WriteLine($"Number of publishes: {groupSeconds.Sum(x => x.Count())}");
             Console.WriteLine($"Avg publishes per second: {groupSeconds.Average(x => x.Count())}");
-            _seconds.Clear();
             _seconds.Clear();
         }
 

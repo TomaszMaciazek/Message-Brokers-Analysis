@@ -9,26 +9,31 @@ if (commandArgs != null && commandArgs.Length > 1)
     .UseConsoleLifetime();
     if (commandArgs[1] == "1")
     {
-        builder = builder.ConfigureServices((context, services) => services.AddHostedService<SingleMessageTestService>());
+        builder.ConfigureServices((context, services) => services.AddHostedService<ConstMessagesNumberTestService>()).Build().Run();
     }
     else if (commandArgs[1] == "2")
     {
-        builder = builder.ConfigureServices((context, services) => services.AddHostedService<TransferMessagesTimeTestService>());
+        if (int.TryParse(commandArgs[2], out int customerNumber)) {
+            builder.ConfigureServices((context, services) => services.AddHostedService(sp => new TransferPacketMultipleQueueTestService(customerNumber))).Build().Run();
+        }
+        else
+        {
+            Console.WriteLine("Provided parameters are not valid");
+        }
     }
     else if (commandArgs[1] == "3")
     {
-        builder = builder.ConfigureServices((context, services) => services.AddHostedService<TransferPacketTestService>());
+        builder.ConfigureServices((context, services) => services.AddHostedService<TransferPacketTestService>()).Build().Run();
     }
     else if (commandArgs[1] == "4")
     {
-        builder = builder.ConfigureServices((context, services) => services.AddHostedService<LatencyTestService>());
+        builder.ConfigureServices((context, services) => services.AddHostedService<LatencyTestService>()).Build().Run();
     }
 
     else if (commandArgs[1] == "5")
     {
-        builder = builder.ConfigureServices((context, services) => services.AddHostedService<BreakdownTestService>());
+        builder.ConfigureServices((context, services) => services.AddHostedService<BreakdownTestService>()).Build().Run();
     }
-    builder.Build().Run();
 }
 else
 {

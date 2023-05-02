@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     networks:
       - rabbit
-    command: "3 2000000000 true" #5 GB and producer sends message throught the fanout exchange
+    command: "3 2000000000 true" #1 GB and producer sends message throught the fanout exchange
       
 networks:
   rabbit:

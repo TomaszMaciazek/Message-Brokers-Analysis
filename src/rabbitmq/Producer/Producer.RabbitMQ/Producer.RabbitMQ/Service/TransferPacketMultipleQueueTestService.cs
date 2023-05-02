@@ -1,19 +1,16 @@
 ﻿using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
-using Producer.RabbitMQ.Common;
 using RabbitMQ.Client;
-using System.Text;
 
 namespace Producer.RabbitMQ.Service
 {
-    public class TransferPacketTestService : IHostedService
+    public class TransferPacketMultipleQueueTestService : IHostedService
     {
         private const string topicExchangeName = "transfer-packet-exchange";
-        private const string queueName = "transfer-packet-queue";
         private const string fanoutExchangeName = "transfer-packet-result-exchange";
 
         private readonly long _size;
         private readonly bool _isSendingFanoutMessage;
+        private readonly int _numberOfConsumers;
         private readonly List<int> _byteSizes = new()
         {
             250, 1000, 4000,  16000, 64000, 256000, 1000000
@@ -22,10 +19,11 @@ namespace Producer.RabbitMQ.Service
         private readonly IConnection conn;
         private readonly IModel channel;
 
-        public TransferPacketTestService(long size, bool isSendingFanoutMessage)
+        public TransferPacketMultipleQueueTestService(long size, int numberOfConsumers, bool isSendingFanoutMessage)
         {
             _size = size;
             _isSendingFanoutMessage = isSendingFanoutMessage;
+            _numberOfConsumers= numberOfConsumers;
             Console.WriteLine("Transfer packet producer starting");
             Console.WriteLine("Connecting to rabbitmq");
             var factory = new ConnectionFactory
@@ -53,13 +51,22 @@ namespace Producer.RabbitMQ.Service
             var publishEnd = DateTime.Now;
             Console.WriteLine($"Publish Start : {start:yyyy-MM-dd HH:mm:ss.fffffff}");
             Console.WriteLine($"Publish End : {publishEnd:yyyy-MM-dd HH:mm:ss.fffffff}");
+            Console.WriteLine($"Publish End Ticks : {publishEnd.Ticks}");
             Console.WriteLine($"Publishing time in miliseconds : {(int)(publishEnd - start).TotalMilliseconds}");
-            while(channel.MessageCount(queueName) > 0) { }
+            while(true) {
+                for(int i = 1; i <= _numberOfConsumers; i++)
+                {
+                    if (channel.MessageCount($"transfer-packet-multiple-queue-{i}") > 0)
+                    {
+                        continue;
+                    }
+                }
+                break;
+            }
             var consumeEnd = DateTime.Now;
             if (_isSendingFanoutMessage)
             {
-                var body = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new TestResultMessage { ProducerStartTicks = start.Ticks, ProducerFinishedTicks = publishEnd.Ticks }));
-                channel.BasicPublish(fanoutExchangeName, routingKey: "", body: body);
+                channel.BasicPublish(fanoutExchangeName, routingKey: "", body: null);
             }
             Console.WriteLine($"Finished consuming at {consumeEnd:yyyy-MM-dd HH:mm:ss.fffffff}");
             Console.WriteLine($"Test time in miliseconds : {(int)(consumeEnd - start).TotalMilliseconds}");

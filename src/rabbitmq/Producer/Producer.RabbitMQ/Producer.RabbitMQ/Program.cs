@@ -12,7 +12,7 @@ if (commandArgs != null && commandArgs.Length > 1)
         if (int.TryParse(commandArgs[2], out int numberOfMessages) && bool.TryParse(commandArgs[3], out bool isSendingFanoutMessage))
         {
             builder.ConfigureServices((context, services) => 
-                services.AddHostedService(sp => new TransferMessagesSingleTestService(numberOfMessages, isSendingFanoutMessage))
+                services.AddHostedService(sp => new TransferConstMessagesNumberTestService(numberOfMessages, isSendingFanoutMessage))
             ).Build().Run();
         }
     }
@@ -40,10 +40,10 @@ if (commandArgs != null && commandArgs.Length > 1)
     }
     else if (commandArgs[1] == "4")
     {
-        if (int.TryParse(commandArgs[2], out int numberOfMessages) && bool.TryParse(commandArgs[3], out bool isSendingFanoutMessage))
+        if (int.TryParse(commandArgs[2], out int sizeInBytes) && bool.TryParse(commandArgs[3], out bool isSendingFanoutMessage))
         {
             builder.ConfigureServices((context, services) => 
-                services.AddHostedService(sp => new LatencyConstantSizeTestService(numberOfMessages, isSendingFanoutMessage))
+                services.AddHostedService(sp => new LatencyConstantSizeTestService(sizeInBytes, isSendingFanoutMessage))
             ).Build().Run();
         }
         else

@@ -18,14 +18,14 @@ services:
       - rabbit
     command: "3"
     
-  consumer3:
-    container_name: consumer_3_3_3
-    build: 
-      context: "../../../../src/rabbitmq/Consumer/Consumer.RabbitMQ"
-      dockerfile: Dockerfile
-    networks:
-      - rabbit
-    command: "3"
+  # consumer3:
+  #   container_name: consumer_3_3_3
+  #   build: 
+  #     context: "../../../../src/rabbitmq/Consumer/Consumer.RabbitMQ"
+  #     dockerfile: Dockerfile
+  #   networks:
+  #     - rabbit
+  #   command: "3"
 
 networks:
   rabbit:

@@ -1,6 +1,9 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Consumer.RabbitMQ.Common;
+using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Text;
 
 namespace Consumer.RabbitMQ.Service
 {
@@ -42,16 +45,23 @@ namespace Consumer.RabbitMQ.Service
             var fanoutConsumer = new EventingBasicConsumer(channel);
             consumer.Received += (model, ea) =>
             {
-                //get ticks difference for receiving and produce times
-                var ticks = DateTime.Now.Ticks - (long)ea.BasicProperties.Headers["produce-time"];
+                var message = JsonConvert.DeserializeObject<LatencyTestMessage>(Encoding.UTF8.GetString(ea.Body.ToArray()));
+                var ticks = DateTime.Now.Ticks - message.ProduceTicks;
                 ticksList.Add(ticks);
             };
             fanoutConsumer.Received += (model, ea) =>
             {
+                var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+                Console.WriteLine(message ?? "");
                 if (ticksList.Any())
                 {
                     var elapsedSpan = new TimeSpan((long)ticksList.Average());
+                    var min = new TimeSpan(ticksList.Min());
+                    var max = new TimeSpan(ticksList.Max());
                     Console.WriteLine($"Average latency: {(int)elapsedSpan.TotalMilliseconds} ms");
+                    Console.WriteLine($"Minimal latency: {(int)min.TotalMilliseconds} ms");
+                    Console.WriteLine($"Maximal latency: {(int)max.TotalMilliseconds} ms");
+                    Console.WriteLine();
                     ticksList.Clear();
                 }
                 ticksList.Clear();

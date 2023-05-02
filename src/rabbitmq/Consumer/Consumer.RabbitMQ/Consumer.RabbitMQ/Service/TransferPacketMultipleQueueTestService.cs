@@ -7,17 +7,20 @@ using System.Text;
 
 namespace Consumer.RabbitMQ.Service
 {
-    public class TransferPacketTestService : IHostedService
+    public class TransferPacketMultipleQueueTestService : IHostedService
     {
         private IConnection? conn;
         private IModel? channel;
         private string consumerTag = string.Empty;
 
         private const string topicExchangeName = "transfer-packet-exchange";
-        private const string queueName = "transfer-packet-queue";
         private const string fanoutExchangeName = "transfer-packet-result-exchange";
-        
-        private DateTime? lastMessage = null;
+        private readonly int _consumerNumber;
+
+        public TransferPacketMultipleQueueTestService(int consumerNumber)
+        {
+            _consumerNumber = consumerNumber;
+        }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -32,18 +35,19 @@ namespace Consumer.RabbitMQ.Service
             channel = conn.CreateModel();
             channel.ContinuationTimeout = TimeSpan.FromSeconds(10000);
             channel.BasicQos(0, 1, false);
-            channel.QueueDeclare(queueName, true, false, true, null);
+            channel.QueueDeclare($"transfer-packet-multiple-queue-{_consumerNumber}",false,true,true);
             var fanoutQueue = channel.QueueDeclare().QueueName;
-            channel.ExchangeDeclare(topicExchangeName, ExchangeType.Topic, true, true);
+            channel.ExchangeDeclare(topicExchangeName, ExchangeType.Topic, autoDelete: true);
             channel.ExchangeDeclare(fanoutExchangeName, ExchangeType.Fanout, autoDelete: true);
-            channel.QueueBind(queueName, topicExchangeName, "transfer-packet.key");
+            channel.QueueBind($"transfer-packet-multiple-queue-{_consumerNumber}", topicExchangeName, $"transfer-packet-{_consumerNumber}.key");
             channel.QueueBind(fanoutQueue, fanoutExchangeName, "");
 
+            DateTime? last = null;
             var consumer = new EventingBasicConsumer(channel);
             var cancelConsumer = new EventingBasicConsumer(channel);
             consumer.Received += (model, ea) =>
             {
-                lastMessage = DateTime.Now;
+                last = DateTime.Now;
             };
 
             cancelConsumer.Received += (model, ea) =>
@@ -51,18 +55,17 @@ namespace Consumer.RabbitMQ.Service
                 Console.WriteLine("Received cancel message");
                 var body = ea.Body.ToArray();
                 var message = JsonConvert.DeserializeObject<TestResultMessage>(Encoding.UTF8.GetString(body));
-                string dateString = lastMessage.HasValue ? lastMessage.Value.ToString("yyyy - MM - dd HH: mm: ss.fffffff") : "no messages were sent";
+                string dateString = last.HasValue ? last.Value.ToString("yyyy - MM - dd HH: mm: ss.fffffff") : "no messages were sent";
                 Console.WriteLine($"Last message: {dateString}");
-                if (message != null && lastMessage.HasValue)
+                if(message != null && last.HasValue)
                 {
-                    var elapsedSpan = new TimeSpan(lastMessage.Value.Ticks - message.ProducerStartTicks);
-                    Console.WriteLine($"Consumption time: {(int)elapsedSpan.TotalMilliseconds} ms");
+                    var elapsedSpan = new TimeSpan(last.Value.Ticks - message.ProducerStartTicks);
+                    Console.WriteLine($"Average latency: {(int)elapsedSpan.TotalMilliseconds} ms");
                 }
-                lastMessage = null;
-                Console.WriteLine();
+                last = null;
             };
             channel.BasicConsume(queue: fanoutQueue, autoAck: true, consumer: cancelConsumer);
-            consumerTag = channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
+            consumerTag = channel.BasicConsume(queue: $"transfer-packet-multiple-queue-{_consumerNumber}", autoAck: true, consumer: consumer);
             return Task.CompletedTask;
         }
 
