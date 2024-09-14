@@ -32,7 +32,7 @@ if (commandArgs != null && commandArgs.Length > 1)
 
     else if (commandArgs[1] == "5")
     {
-        builder.ConfigureServices((context, services) => services.AddHostedService<BreakdownTestService>()).Build().Run();
+        builder.ConfigureServices((context, services) => services.AddHostedService<LatencyMultipleProducersTestService>()).Build().Run();
     }
 }
 else

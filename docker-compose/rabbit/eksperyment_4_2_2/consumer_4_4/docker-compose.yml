@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     networks:
       - rabbit
-    command: "4"
+    command: "5"
   
   consumer2:
     container_name: consumer_4_4_2
@@ -16,7 +16,7 @@ services:
       dockerfile: Dockerfile
     networks:
       - rabbit
-    command: "4"
+    command: "5"
 
 networks:
   rabbit:

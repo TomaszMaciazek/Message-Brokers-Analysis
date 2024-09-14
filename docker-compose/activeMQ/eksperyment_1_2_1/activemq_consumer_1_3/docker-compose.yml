@@ -1,0 +1,25 @@
+version: '3'
+services:
+  consumer1:
+    container_name: activemq_consumer_1_3_1
+    build: 
+      context: "../../../../src/activemq/Consumer/Consumer.ActiveMQ"
+      dockerfile: Dockerfile
+    networks:
+      - activemq
+    command: "1"
+
+  consumer2:
+    container_name: activemq_consumer_1_3_2
+    build: 
+      context: "../../../../src/activemq/Consumer/Consumer.ActiveMQ"
+      dockerfile: Dockerfile
+    networks:
+      - activemq
+    command: "1"
+      
+networks:
+  activemq:
+    name: activemq
+    external: true
+    

@@ -44,6 +44,7 @@ namespace Consumer.RabbitMQ.Service
             consumer.Received += (model, ea) =>
             {
                 lastMessage = DateTime.Now;
+                var message = JsonConvert.DeserializeObject<SimpleMessage>(Encoding.UTF8.GetString(ea.Body.ToArray()));
             };
 
             cancelConsumer.Received += (model, ea) =>

@@ -16,19 +16,17 @@ namespace Producer.RabbitMQ.Service
         private readonly List<long> _seconds;
         private readonly int _numberOfMessages;
         private readonly bool _isSendingFanoutMessage;
-        private readonly List<int> _byteSizes = new()
-        {
-            250, 1000, 4000, 16000, 64000, 256000, 1000000
-        };
+        private readonly int _messageSize;
 
         private readonly IConnection conn;
         private readonly IModel channel;
 
-        public TransferConstMessagesNumberTestService(int numberOfMessages, bool isSendingFanoutMessage)
+        public TransferConstMessagesNumberTestService(int numberOfMessages, bool isSendingFanoutMessage, int messageSize)
         {
             _numberOfMessages = numberOfMessages;
-            _isSendingFanoutMessage= isSendingFanoutMessage;
-            _seconds= new List<long>();
+            _isSendingFanoutMessage = isSendingFanoutMessage;
+            _messageSize = messageSize;
+            _seconds = new List<long>();
 
             Console.WriteLine("Transfer constant number of messages producer starting");
             Console.WriteLine("Connecting to rabbitmq");
@@ -53,7 +51,7 @@ namespace Producer.RabbitMQ.Service
             stopWatch.Start();
             for (int i = 0; i < _numberOfMessages; i++)
             {
-                channel.BasicPublish(exchange: topicExchangeName, routingKey: "transfer-single.key", body: data);
+                channel.BasicPublish(exchange: topicExchangeName, routingKey: "transfer-single.key", body: Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new SimpleMessage(data))));
                 _seconds.Add(stopWatch.Elapsed.Ticks / TimeSpan.TicksPerSecond);
             }
             var end = DateTime.Now;
@@ -76,18 +74,13 @@ namespace Producer.RabbitMQ.Service
                 Console.WriteLine($"{group.Key}, {group.Count()}");
             }
             Console.WriteLine($"Number of publishes: {groupSeconds.Sum(x => x.Count())}");
-            Console.WriteLine($"Avg publishes per second: {groupSeconds.Average(x => x.Count())}");
             _seconds.Clear();
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            foreach (var size in _byteSizes)
-            {
-                Console.WriteLine($"Test for {size} bytes");
-                RunTest(BytesGenerator.GetByteArray(size));
-                Task.Delay(10000, cancellationToken).Wait(cancellationToken);
-            }
+            Console.WriteLine($"Test for {_messageSize} bytes");
+            RunTest(BytesGenerator.GetByteArray(_messageSize));
             return Task.CompletedTask;
         }
 

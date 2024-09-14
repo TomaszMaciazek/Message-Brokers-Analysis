@@ -1,0 +1,25 @@
+version: '3'
+services:
+  producer1:
+    container_name: kafka_producer_1_4_1
+    build: 
+      context: "../../../../src/kafka/Producer/Producer.Kafka"
+      dockerfile: Dockerfile
+    networks:
+      - kafka
+    command: "2 500 1000000"
+
+  producer2:
+    container_name: kafka_producer_1_4_2
+    build: 
+      context: "../../../../src/kafka/Producer/Producer.Kafka"
+      dockerfile: Dockerfile
+    networks:
+      - kafka
+    command: "2 500 1000000"
+      
+networks:
+  kafka:
+    name: kafka
+    external: true
+    

@@ -13,18 +13,16 @@ namespace Producer.RabbitMQ.Service
         private const string fanoutExchangeName = "transfer-packet-result-exchange";
 
         private readonly long _size;
+        private readonly int _messageSize;
         private readonly bool _isSendingFanoutMessage;
-        private readonly List<int> _byteSizes = new()
-        {
-            250, 1000, 4000,  16000, 64000, 256000, 1000000
-        };
 
         private readonly IConnection conn;
         private readonly IModel channel;
 
-        public TransferPacketTestService(long size, bool isSendingFanoutMessage)
+        public TransferPacketTestService(long size, int messageSize, bool isSendingFanoutMessage)
         {
             _size = size;
+            _messageSize = messageSize;
             _isSendingFanoutMessage = isSendingFanoutMessage;
             Console.WriteLine("Transfer packet producer starting");
             Console.WriteLine("Connecting to rabbitmq");
@@ -34,12 +32,14 @@ namespace Producer.RabbitMQ.Service
             };
             conn = factory.CreateConnection();
             channel = conn.CreateModel();
+            Console.WriteLine("Model created");
             channel.ContinuationTimeout = TimeSpan.FromSeconds(10000);
             channel.ExchangeDeclare(topicExchangeName, ExchangeType.Topic, autoDelete: true);
             if (_isSendingFanoutMessage)
             {
                 channel.ExchangeDeclare(fanoutExchangeName, ExchangeType.Fanout, autoDelete: true);
             }
+            Console.WriteLine("Connected to rabbitmq");
         }
 
         public void RunTest(byte[] data)
@@ -48,7 +48,7 @@ namespace Producer.RabbitMQ.Service
             var start = DateTime.Now;
             for (int i = 0; i < lastIndex; i++)
             {
-                channel.BasicPublish(exchange: topicExchangeName, routingKey: "transfer-packet.key", body: data);
+                channel.BasicPublish(exchange: topicExchangeName, routingKey: "transfer-packet.key", body: Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new SimpleMessage(data))));
             }
             var publishEnd = DateTime.Now;
             Console.WriteLine($"Publish Start : {start:yyyy-MM-dd HH:mm:ss.fffffff}");
@@ -67,13 +67,8 @@ namespace Producer.RabbitMQ.Service
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            foreach (var size in _byteSizes)
-            {
-                Console.WriteLine();
-                Console.WriteLine($"Test for {size} bytes");
-                RunTest(BytesGenerator.GetByteArray(size));
-                Task.Delay(10000, cancellationToken).Wait(cancellationToken);
-            }
+            Console.WriteLine($"Test for {_messageSize} bytes");
+            RunTest(BytesGenerator.GetByteArray(_messageSize));
             return Task.CompletedTask;
         }
 

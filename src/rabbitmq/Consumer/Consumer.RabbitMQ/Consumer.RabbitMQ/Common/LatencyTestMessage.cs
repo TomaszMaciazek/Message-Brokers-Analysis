@@ -1,8 +1,7 @@
 ﻿namespace Consumer.RabbitMQ.Common
 {
-    public class LatencyTestMessage
+    public class LatencyTestMessage : SimpleMessage
     {
         public long ProduceTicks { get; set; }
-        public byte[]? Data { get; set; }
     }
 }

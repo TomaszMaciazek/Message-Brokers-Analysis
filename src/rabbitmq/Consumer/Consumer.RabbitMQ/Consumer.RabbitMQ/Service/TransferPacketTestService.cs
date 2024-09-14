@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
+using System.Threading.Channels;
 
 namespace Consumer.RabbitMQ.Service
 {
@@ -34,7 +35,7 @@ namespace Consumer.RabbitMQ.Service
             channel.BasicQos(0, 1, false);
             channel.QueueDeclare(queueName, true, false, true, null);
             var fanoutQueue = channel.QueueDeclare().QueueName;
-            channel.ExchangeDeclare(topicExchangeName, ExchangeType.Topic, true, true);
+            channel.ExchangeDeclare(topicExchangeName, ExchangeType.Topic, autoDelete: true);
             channel.ExchangeDeclare(fanoutExchangeName, ExchangeType.Fanout, autoDelete: true);
             channel.QueueBind(queueName, topicExchangeName, "transfer-packet.key");
             channel.QueueBind(fanoutQueue, fanoutExchangeName, "");
@@ -44,6 +45,8 @@ namespace Consumer.RabbitMQ.Service
             consumer.Received += (model, ea) =>
             {
                 lastMessage = DateTime.Now;
+                var message = JsonConvert.DeserializeObject<SimpleMessage>(Encoding.UTF8.GetString(ea.Body.ToArray()));
+                message = null;
             };
 
             cancelConsumer.Received += (model, ea) =>

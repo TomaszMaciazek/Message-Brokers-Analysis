@@ -1,0 +1,21 @@
+version: "3"
+ 
+services:
+  activemq:
+    container_name: 'activemq'
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 61616:61616
+      - 8161:8161
+    volumes:
+      - ~/Documents/data/activemq/data:/data/activemq
+      - ~/Documents/data/activemq/log:/var/log/activemq
+    networks:
+      - activemq
+
+networks:
+  activemq:
+    name: activemq
+    external: true

@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     networks:
       - kafka
-    command: "1 10000 " #10000 messages
+    command: "1 1000 250"
       
 networks:
   kafka:

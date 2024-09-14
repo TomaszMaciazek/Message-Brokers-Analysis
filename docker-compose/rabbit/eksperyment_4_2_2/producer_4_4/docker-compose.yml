@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     networks:
       - rabbit
-    command: "4 500000000 true" # 0.5 GB packet and producer sends message throught the fanout exchange
+    command: "4 250000000 true 1000000"
   
   producer2:
     container_name: producer_4_4_2
@@ -16,7 +16,7 @@ services:
       dockerfile: Dockerfile
     networks:
       - rabbit
-    command: "4 500000000 false" # 0.5 GB packet and producer does not send message throught the fanout exchange
+    command: "4 250000000 true 1000000"
 
 networks:
   rabbit:

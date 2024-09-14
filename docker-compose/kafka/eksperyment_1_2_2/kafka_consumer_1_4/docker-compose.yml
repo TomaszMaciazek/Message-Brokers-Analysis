@@ -1,0 +1,25 @@
+version: '3'
+services:
+  consumer1:
+    container_name: kafka_consumer_1_4_1
+    build: 
+      context: "../../../../src/kafka/Consumer/Consumer.Kafka"
+      dockerfile: Dockerfile
+    networks:
+      - kafka
+    command: "1"
+
+  consumer2:
+    container_name: kafka_consumer_1_4_2
+    build: 
+      context: "../../../../src/kafka/Consumer/Consumer.Kafka"
+      dockerfile: Dockerfile
+    networks:
+      - kafka
+    command: "1"
+      
+networks:
+  kafka:
+    name: kafka
+    external: true
+    

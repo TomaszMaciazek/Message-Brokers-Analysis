@@ -18,7 +18,8 @@ namespace Consumer.Kafka.Services
             {
                 GroupId = _groupId,
                 BootstrapServers = _bootstrapServers,
-                AutoOffsetReset = AutoOffsetReset.Earliest
+                AutoOffsetReset = AutoOffsetReset.Earliest,
+                MessageMaxBytes = 20971520
             };
             consumer = new ConsumerBuilder<Null, string>(config).Build();
         }
@@ -26,7 +27,7 @@ namespace Consumer.Kafka.Services
         public Task StartAsync(CancellationToken cancellationToken)
         {
             Console.WriteLine("Consumption started");
-            DateTime? lastMessage;
+            DateTime? lastConsumption = null;
             consumer.Subscribe(_topic);
             try
             {
@@ -35,11 +36,20 @@ namespace Consumer.Kafka.Services
                     var consumeResult = consumer.Consume(cancellationToken);
                     if (consumeResult.Message != null)
                     {
+                        var received = DateTime.Now;
                         var message = JsonConvert.DeserializeObject<KafkaMessage>(consumeResult.Message.Value);
+                        //Jeśli partycja nie brała udziału w konsumpcji to nie wyświetlamy
                         if (message != null) {
-                            lastMessage = DateTime.Now;
-                            if (message.IsLastMessage) {
-                                Console.WriteLine($"Consumption of {message.Data.Length} bytes messages finished at {lastMessage:yyyy-MM-dd HH:mm:ss.fffffff}");
+
+                            if (message.IsLastMessage && lastConsumption.HasValue) {
+                                Console.WriteLine($"Consumption of {message.Data.Length} bytes messages finished at {lastConsumption:yyyy-MM-dd HH:mm:ss.fffffff}");
+                                var elapsedSpan = new TimeSpan(lastConsumption.Value.Ticks - message.ProduceTicks);
+                                Console.WriteLine($"Consumption time: {(int)elapsedSpan.TotalMilliseconds} ms");
+                                lastConsumption = null;
+                            }
+                            else
+                            {
+                                lastConsumption = received;
                             }
                         }
                     }

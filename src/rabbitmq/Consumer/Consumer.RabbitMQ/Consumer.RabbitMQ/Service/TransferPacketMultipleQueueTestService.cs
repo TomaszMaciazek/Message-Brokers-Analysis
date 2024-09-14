@@ -47,6 +47,7 @@ namespace Consumer.RabbitMQ.Service
             var cancelConsumer = new EventingBasicConsumer(channel);
             consumer.Received += (model, ea) =>
             {
+
                 last = DateTime.Now;
             };
 

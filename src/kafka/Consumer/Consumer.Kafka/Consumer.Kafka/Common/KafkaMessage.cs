@@ -4,5 +4,6 @@
     {
         public byte[] Data { get; set; }
         public bool IsLastMessage { get; set; }
+        public long ProduceTicks { get; set; }
     }
 }

@@ -1,0 +1,25 @@
+version: '3'
+services:
+  producer1:
+    container_name: activemq_producer_3_4_1
+    build: 
+      context: "../../../../src/activemq/Producer/Producer.ActiveMQ"
+      dockerfile: Dockerfile
+    networks:
+      - activemq
+    command: "3 1000000000 4000"
+
+  producer2:
+    container_name: activemq_producer_3_4_2
+    build: 
+      context: "../../../../src/activemq/Producer/Producer.ActiveMQ"
+      dockerfile: Dockerfile
+    networks:
+      - activemq
+    command: "3 1000000000 4000"
+      
+networks:
+  activemq:
+    name: activemq
+    external: true
+    
